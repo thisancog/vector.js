@@ -5,7 +5,7 @@
 	"main": "gulpfile.js",
 	"devDependencies": {
 		"chai": "^3.5.0",
-		"gulp": "^4.0.0",
+		"gulp": "github:gulpjs/gulp",
 		"gulp-babel-minify": "^0.4.3",
 		"gulp-changed": "^2.0.0",
 		"gulp-concat": "^2.6.1",
@@ -36,5 +36,8 @@
 	"bugs": {
 		"url": "https://github.com/thisancog/vector.js/issues"
 	},
-	"homepage": "https://github.com/thisancog/vector.js#readme"
+	"homepage": "https://github.com/thisancog/vector.js#readme",
+	"dependencies": {
+		"ajv": "^6.5.2"
+	}
 }
