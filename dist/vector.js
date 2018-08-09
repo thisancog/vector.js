@@ -79,11 +79,11 @@ class Vector2D {
 	}
 
 	static normalise(vector) {
-		return Vector.div(vector, Vector2D.length(vector));
+		return Vector2D.div(vector, Vector2D.length(vector));
 	}
 
 	static setLength(vector, scalar) {
-		return Vector.mult(Vector2D.normalise(vector), scalar);
+		return Vector2D.mult(Vector2D.normalise(vector), scalar);
 	}
 
 	static limit(vector, scalar) {
