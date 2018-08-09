@@ -189,8 +189,7 @@ class Vector {
 	static lerp(min, max, fraction) {
 		if (!Vector.sameDimension(min, max)) return;
 
-		let newMax = Object.assign({}, ...max);
-		Object.setPrototypeOf(newMax, Vector);
+		let newMax = Vector.clone(max);
 		return newMax.subtract(min).multiply(fraction).add(min);
 	}
 
@@ -205,6 +204,10 @@ class Vector {
 		);
 
 		return new Vector(...values);
+	}
+
+	static clone(vector) {
+		return JSON.parse(JSON.stringify(vector));
 	}
 
 
@@ -294,6 +297,10 @@ class Vector {
 
 	map(minIn, maxIn, minOut, maxOut) {
 		return this.update(Vector.map(this, minIn, maxIn, minOut, maxOut));
+	}
+
+	clone() {
+		return Vector.clone(this);
 	}
 
 };

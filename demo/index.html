@@ -20,10 +20,14 @@
 			};
 
 			let vector1 = new Vector(12, 24, 4, 7),
-				vector2 = new Vector(2, 6),
-				dot = Vector.dot(vector1, vector2);
+				vector2 = new Vector(2, 6, 7),
+				vector3 = new Vector(4, -9, 4	),
+				data = [[9, 1, -3], [4, 3, 6], [7, 2, 9]],
+				matrix = new Matrix(data),
+				det = matrix.determinant(),
+				cross = Vector.cross(vector2, vector3);
 
-			console.log(vector1, vector2, dot);
+			console.log(vector2, vector3, cross);
 		})();
 	</script>
 </body>
