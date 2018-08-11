@@ -6,15 +6,13 @@
 	polar to cartesian
 	construct from polar
 	direction in cartesian grid
-	angle
 	angle in plane N
+	rotate around axis n
 
-	cross product
-	scalar triple product
-	vector triple product
-	dyadic product
+	cross product n > 3
 
-	projection a on b
+	projection a on vector b
+	projection a on plane b
 
 	http://victorjs.org/
 	https://evanw.github.io/lightgl.js/docs/vector.html
@@ -62,6 +60,14 @@ class Vector {
 		return n <= 25 ? dimSingle[n] : alphabet[Math.floor(n / 25) - 1] + alphabet[n % 25];
 	}
 
+	static getDimensionFromLabel(s) {
+		let alphabet = Array(26).fill('').map((n, i) => String.fromCharCode(97 + i)),
+			dimSingle = alphabet.slice(-3).concat(alphabet.slice(0, -3));
+
+		if (s.length === 0) return dimSingle.indexOf(s);
+		return 26 * alphabet.indexOf(s.substr(0, 1)) + alphabet.indexOf(s.substr(1, 0));
+	}
+
 
 	/***
 		Assign angle to the n-th dimension angle in the greek alphabet:
@@ -80,11 +86,16 @@ class Vector {
 		e.g. Vector.add(vector1, vector2)
 	 ******************************************/
 
+	static isVector(...vectors) {
+		return vectors.filter(vector => !(vector instanceof Vector)).length === 0;
+	}
+
 	static clone(vector) {
 		return JSON.parse(JSON.stringify(vector));
 	}
 
 	static sameDimension(vector1, ...vectors) {
+		if (!Vector.isVector(vector1, ...vectors)) return;
 		return vectors.filter(vector => vector.dimension !== vector1.dimension).length == 0;
 	}
 
@@ -129,6 +140,7 @@ class Vector {
 	}
 
 	static mult(vector, scalar) {
+		if (!Vector.isVector(vector) || !isNumeric(scalar)) return;
 		let values = Array(vector.dimension).fill(null).map(
 			(_, dim) => vector[Vector.getDimensionLabel(dim)] * scalar
 		);
@@ -137,7 +149,7 @@ class Vector {
 	}
 
 	static div(vector, scalar) {
-		if (scalar == 0) return;
+		if (!Vector.isVector(vector) || !isNumeric(scalar) || scalar == 0) return
 
 		let values = Array(vector.dimension).fill(null).map(
 			(_, dim) => vector[Vector.getDimensionLabel(dim)] / scalar
@@ -147,10 +159,12 @@ class Vector {
 	}
 
 	static negative(vector) {
+		if (!Vector.isVector(vector)) return;
 		return Vector.mult(vector, -1);
 	}
 
 	static cross(...vectors) {
+		if (!Vector.isVector(...vectors)) return;
 		let dim = vectors[0].dimension;
 
 		// the cross product of n n-dimensional vectors is a scalar
@@ -184,6 +198,38 @@ class Vector {
 		).reduce((acc, val) => acc + val, 0);
 	}
 
+	static vectorTripleProduct(vector1, vector2, vector3) {
+		if (!Vector.isVector(vector1, vector2, vector3)) return;
+		let prod = Vector.cross(vector2, vector3);
+		return (prod) ? Vector.cross(vector1, prod) : undefined;
+	}
+
+	static scalarTripleProduct(vector1, vector2, vector3) {
+		if (!Vector.isVector(vector1, vector2, vector3)) return;
+		let prod = Vector.cross(vector1, vector2);
+		return (prod) ? Vector.dot(prod, vector3) : undefined;
+	}
+
+	static dyadic(vector1, vector2) {
+		if (!Vector.isVector(vector1, vector2)) return;
+		let data = Array(vector1.dimension).fill(null).map((_, row) => 
+			Array(vector2.dimension).fill(null).map((__, col) => 
+				vector1[Vector.getDimensionLabel(row)] * vector2[Vector.getDimensionLabel(col)]
+			)
+		);
+
+		return new Matrix(data);
+	}
+
+	static matMult(vector, matrix) {
+		if (!Vector.isVector(vector) || !Matrix.isMatrix(matrix) || vector.dimension !== matrix.rows) return;
+
+		let vecMatrix = new Matrix([Array(vector.dimension).fill(null).map((_, dim) => vector[Vector.getDimensionLabeldim])]),
+			newMatrix = Matrix.matMult(vecMatrix, matrix);
+
+		return new Vector(...newMatrix.values[0]);
+	}
+
 	static angle(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
 
@@ -195,24 +241,49 @@ class Vector {
 		return Math.acos(Vector.dot(vector1, vector2) / (len1 * len2));
 	}
 
+	static angleToAxis(vector, axis) {
+		if (!Vector.isVector(vector)) return;
+		let coords = Array(vector.dimension).fill(0);
+		coords[typeof axis === 'string' ? Vector.getDimensionFromLabel(axis) : axis] = 1;
+		return Vector.angle(vector, new Vector(...coords));
+	}
+
+	static angleX(vector) {
+		return Vector.angleToAxis(vector, 0);
+	}
+
+	static angleY(vector) {
+		return Vector.angleToAxis(vector, 1);
+	}
+
+	static angleZ(vector) {
+		return Vector.angleToAxis(vector, 2);
+	}
+
 	static length(vector) {
+		if (!Vector.isVector(vector)) return;
 		return Math.sqrt(Vector.dot(vector, vector));
 	}
 
 	static normalise(vector) {
+		if (!Vector.isVector(vector)) return;
 		return Vector.div(vector, Vector.length(vector));
 	}
 
 	static setLength(vector, scalar) {
+		if (!Vector.isVector(vector) || !isNumeric(scalar)) return;
 		return Vector.mult(Vector.normalise(vector), scalar);
 	}
 
 	static limit(vector, scalar) {
+		if (!Vector.isVector(vector) || !isNumeric(scalar)) return;
 		let length = Vector.length(vector);
 		return length <= scalar ? vector : Vector.mult(Vector.normalise(vector), scalar);
 	}
 
 	static reduce(vector) {
+		if (!Vector.isVector(vector)) return;
+
 		// check if any dimension is not an integer
 		if (Object.keys(vector).some(dim => vector[dim] - parseInt(vector[dim] !== 0))) return vector;
 
@@ -264,7 +335,7 @@ class Vector {
 		return new Vector(...values);
 	}
 
-	static min(vector1, vector2) {
+	static max(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
 
 		let values = Array(vector.dimension).fill(null).map(
@@ -336,6 +407,8 @@ class Vector {
 	}
 
 	update(vector) {
+		if (typeof vector === undefined) return this;
+
 		for (let dim in this) {
 			if (vector.hasOwnProperty(dim)) this[dim] = vector[dim];
 		}
@@ -344,23 +417,19 @@ class Vector {
 	}
 
 	add(...vectors) {
-		vectors.forEach(vector => this.update(Vector.add(this, vector)));
-		return this;
+		return this.update(Vector.add(this, ...vectors));
 	}
 
 	addExact(...vectors) {
-		vectors.forEach(vector => this.update(Vector.addExact(this, vector)));
-		return this;
+		return this.update(Vector.addExact(this, ...vectors));
 	}
 
 	subtract(...vectors) {
-		vectors.forEach(vector => this.update(Vector.subtract(this, vector)));
-		return this;
+		return this.update(Vector.subtract(this, ...vectors));
 	}
 
 	subtractExact(...vectors) {
-		vectors.forEach(vector => this.update(Vector.subtractExact(this, vector)));
-		return this;
+		return this.update(Vector.subtractExact(this, ...vectors));
 	}
 
 	mult(scalar) {
@@ -383,8 +452,40 @@ class Vector {
 		return Vector.dot(this, vector);
 	}
 
+	vectorTripleProduct(vector1, vector2) {
+		return Vector.vectorTripleProduct(this, vector1, vector2);
+	}
+
+	scalarTripleProduct(vector1, vector2) {
+		return Vector.scalarTripleProduct(this, vector1, vector2);
+	}
+
+	dyadic(vector) {
+		return Vector.dyadic(this, vector);
+	}
+
+	matMult(matrix) {
+		return this.update(Vector.matMult(this, matrix));
+	}
+
 	angle(vector) {
 		return Vector.angle(this, vector);
+	}
+
+	angleToAxis(axis) {
+		return Vector.angleToAxis(vector, axis);
+	}
+
+	angleX() {
+		return Vector.angleX(this);
+	}
+
+	angleY() {
+		return Vector.angleY(this);
+	}
+
+	angleZ() {
+		return Vector.angleZs(this);
 	}
 
 	length() {

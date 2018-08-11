@@ -1,3 +1,38 @@
+/*
+	parseSettings()
+	getDimensionLabel()
+	getDimensionFromLabel()
+	getAngleLabel()
+	clone()
+	sameDimension()
+	negative()
+	cross()
+	dot()
+	dyadic()
+	angle()
+	angleToAxis()
+	angleX()
+	angleY()
+	angleZ()
+	reduce()
+	min()
+	max()
+	lerp()
+	map()
+	distance()
+	distanceSquared()
+	distanceManhattan()
+	distanceChebyshev()
+	distanceMinkowski()
+	scalarTripleProduct()
+	vectorTripleProduct()
+	matMult()
+	.dimension
+	.update()
+
+*/
+
+
 'use strict';
 
 let assert = require('assert'),

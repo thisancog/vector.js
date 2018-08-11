@@ -60,7 +60,92 @@ class Matrix {
 		e.g. Matrix.add(matrix1, matrix2)
 	 ******************************************/
 
+	static isMatrix(...matrices) {
+		return matrices.filter(matrix => !(matrix instanceof Matrix)).length === 0;
+	}
+
+	static clone(matrix) {
+		return JSON.parse(JSON.stringify(matrix));
+	}
+
+	static sameShape(matrix1, ...matrices) {
+		if (!Matrix.isMatrix(matrix1, ...matrices)) return;
+		return matrices.filter(matrix => matrix.rows !== matrix1.rows || matrix.cols !== matrix1.cols).length == 0;
+	}
+
+	static log(matrix) {
+		console.table(matrix.values);
+	}
+
+	static add(...matrices) {
+		if (!Matrix.sameShape(...matrices)) return;
+
+		return new Matrix(Array(matrices[0].rows).fill(null).map((_, row) =>
+			Array(matrices[0].cols).fill(null).map((__, col) =>
+				matrices.reduce((acc, val) => acc + val.values[row][col], 0)
+			)
+		));
+	}
+
+	static addExact(...matrices) {
+		if (!Matrix.sameShape(...matrices)) return;
+
+		return new Matrix(Array(matrices[0].rows).fill(null).map((_, row) =>
+			Array(matrices[0].cols).fill(null).map((__, col) =>
+				sumExact(matrices.map(matrix => matrix.values[row][col]))
+			)
+		));
+	}
+
+	static subtract(matrix1, ...matrices) {
+		if (!Matrix.sameShape(matrix1, ...matrices)) return;
+
+		return new Matrix(Array(matrix1.rows).fill(null).map((_, row) =>
+			Array(matrix1.cols).fill(null).map((__, col) =>
+				matrices.reduce((acc, val) => acc - val.values[row][col], matrix1.values[row][col])
+			)
+		));
+	}
+
+	static subtractExact(matrix1, ...matrices) {
+		if (!Matrix.sameShape(matrix1, ...matrices)) return;
+
+		return new Matrix(Array(matrix1.rows).fill(null).map((_, row) =>
+			Array(matrix1.cols).fill(null).map((__, col) =>
+				sumExact(matrices.map((matrix, i) => i == 0 ? matrix.values[row][col] : - matrix.values[row][col]))
+			)
+		));
+	}
+
+	static mult(matrix, scalar) {
+		if (!Matrix.isMatrix(matrix) || !isNumeric(scalar)) return;
+		return new Matrix(Array(matrix.rows).fill(null).map((_, row) =>
+			Array(matrix.cols).fill(null).map((__, col) => matrix.values[row][col] * scalar)
+		));
+	}
+
+	static div(matrix, scalar) {
+		if (!Matrix.isMatrix(matrix) || !isNumeric(scalar) || scalar == 0) return;
+		
+		return new Matrix(Array(matrix.rows).fill(null).map((_, row) =>
+			Array(matrix.cols).fill(null).map((__, col) => matrix.values[row][col] / scalar)
+		));
+	}
+
+	static matMult(matrix1, matrix2) {
+		if (!Matrix.isMatrix(matrix1, matrix2) || matrix1.cols !== matrix2.rows) return;
+
+		return new Matrix(Array(matrix1.rows).fill(null).map((_, row) =>
+			Array(matrix2.cols).fill(null).map((__, col) =>
+				Array(matrix1.cols).fill(null).map((__, i) =>
+					matrix1.values[row][i] * matrix2.values[i][col]
+				).reduce((acc, val) => acc + val, 0)
+			)
+		))
+	}
+
 	static submatrix(matrix, rows, cols) {
+		if (!Matrix.isMatrix(matrix)) return;
 		let newMatrix = Matrix.clone(matrix),
 			index;
 
@@ -75,7 +160,7 @@ class Matrix {
 	}
 
 	static determinant(matrix) {
-		if (matrix.rows !== matrix.cols) return;
+		if (!Matrix.isMatrix(matrix) || matrix.rows !== matrix.cols) return;
 		if (matrix.rows == 0) return 0;
 		if (matrix.rows == 1) return matrix.values[0][0];
 		if (matrix.rows == 2) return matrix.values[0][0] * matrix.values[1][1] - matrix.values[0][1] * matrix.values[1][0];
@@ -91,9 +176,7 @@ class Matrix {
 		return sum;
 	}
 
-	static clone(matrix) {
-		return JSON.parse(JSON.stringify(matrix));
-	}
+	
 
 
 
@@ -102,17 +185,60 @@ class Matrix {
 		which update the instance's data
 	 ******************************************/
 
-	determinant() {
-		return Matrix.determinant(this);
+	update(matrix) {
+		if (typeof matrix === undefined) return this;
+
+		this.values = matrix.values;
+		this.rows = matrix.rows;
+		this.cols = matrix.cols;
+		return this;
+	}
+
+	clone() {
+		return Matrix.clone(this);
+	}
+
+	log() {
+		Matrix.log(this);
+	}
+
+	add(...matrices) {
+		return this.update(Matrix.add(this, ...matrices));
+	}
+
+	addExact(...matrices) {
+		return this.update(Matrix.addExact(this, ...matrices));
+	}
+
+	subtract(...matrices) {
+		return this.update(Matrix.subtract(this, ...matrices));
+	}
+
+	subtractExact(...matrices) {
+		return this.update(Matrix.subtractExact(this, ...matrices));
+	}
+
+	mult(scalar) {
+		return this.update(Matrix.mult(this, scalar));
+	}
+
+	div(scalar) {
+		return this.update(Matrix.div(this, scalar));
+	}
+
+	matMult(matrix) {
+		return this.update(Matrix.matMult(this, matrix));
 	}
 
 	submatrix(rows, cols) {
 		return Matrix.submatrix(this, rows, cols);
 	}
 
-	clone() {
-		return Matrix.clone(this);
+	determinant() {
+		return Matrix.determinant(this);
 	}
+
+
 
 }
 
