@@ -1,43 +1,46 @@
 {
-	"name": "vector.js",
-	"description": "A vector maths and canvas drawing library for procedural graphics and more.",
-	"version": "1.0.0",
-	"main": "gulpfile.js",
-	"devDependencies": {
-		"chai": "^3.5.0",
-		"gulp": "github:gulpjs/gulp",
-		"gulp-babel-minify": "^0.4.3",
-		"gulp-changed": "^2.0.0",
-		"gulp-concat": "^2.6.1",
-		"gulp-jshint": "^2.1.0",
-		"gulp-mocha": "^6.0.0",
-		"gulp-rename": "^1.4.0",
-		"gulp-uglify": "^2.1.2",
-		"jshint": "^2.9.6",
-		"webpack-stream": "^5.1.1"
-	},
-	"scripts": {
-		"dev": "gulp --require babel-register --gulpfile tasks",
-		"build": "gulp --require babel-register --gulpfile tasks",
-		"test": "gulp --require babel-register --gulpfile tasks"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/thisancog/vector.js.git"
-	},
-	"keywords": [
-		"vector",
-		"maths",
-		"canvas",
-		"javascript"
-	],
-	"author": "Matthias Planitzer",
-	"license": "MIT",
-	"bugs": {
-		"url": "https://github.com/thisancog/vector.js/issues"
-	},
-	"homepage": "https://github.com/thisancog/vector.js#readme",
-	"dependencies": {
-		"ajv": "^6.5.2"
-	}
+  "name": "vector.js",
+  "description": "A vector maths and canvas drawing library for procedural graphics and more.",
+  "version": "1.0.0",
+  "main": "gulpfile.js",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "gulp": "github:gulpjs/gulp",
+    "gulp-babel-minify": "^0.4.3",
+    "gulp-changed": "^2.0.0",
+    "gulp-concat": "^2.6.1",
+    "gulp-jshint": "^2.1.0",
+    "gulp-mocha": "^6.0.0",
+    "gulp-rename": "^1.4.0",
+    "gulp-uglify": "^2.1.2",
+    "jshint": "^2.9.6",
+    "webpack-stream": "^5.1.1"
+  },
+  "scripts": {
+    "dev": "gulp --require babel-register --gulpfile tasks",
+    "build": "gulp --require babel-register --gulpfile tasks",
+    "test": "gulp --require babel-register --gulpfile tasks"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thisancog/vector.js.git"
+  },
+  "keywords": [
+    "vector",
+    "maths",
+    "canvas",
+    "javascript"
+  ],
+  "author": "Matthias Planitzer",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/thisancog/vector.js/issues"
+  },
+  "homepage": "https://github.com/thisancog/vector.js#readme",
+  "dependencies": {
+    "ajv": "^6.5.2"
+  },
+  "directories": {
+    "test": "tests"
+  }
 }

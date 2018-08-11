@@ -165,6 +165,9 @@ class Matrix {
 
 	projection a on b
 
+	http://victorjs.org/
+	https://evanw.github.io/lightgl.js/docs/vector.html
+
 */
 
 "use strict";
@@ -225,6 +228,10 @@ class Vector {
 		Static methods invoked on the class
 		e.g. Vector.add(vector1, vector2)
 	 ******************************************/
+
+	static clone(vector) {
+		return JSON.parse(JSON.stringify(vector));
+	}
 
 	static sameDimension(vector1, ...vectors) {
 		return vectors.filter(vector => vector.dimension !== vector1.dimension).length == 0;
@@ -292,12 +299,49 @@ class Vector {
 		return Vector.mult(vector, -1);
 	}
 
+	static cross(...vectors) {
+		let dim = vectors[0].dimension;
+
+		// the cross product of n n-dimensional vectors is a scalar
+		if (vectors.length === dim) {
+			let data = Array(dim).fill(null).map((_, row) => {
+					return Array(dim).fill(null).map((__, col) => {
+						return vectors[col][Vector.getDimensionLabel(row)];
+					});
+				});
+
+			return new Matrix(data).determinant();
+		}
+
+		if (vectors.length !== dim - 1) return;
+
+		// ToDo: add calculations for n = 7 and, later, arbitrary n
+		if (dim !== 3) return;
+
+		let x = vectors[0].y * vectors[1].z - vectors[0].z * vectors[1].y,
+			y = vectors[0].z * vectors[1].x - vectors[0].x * vectors[1].z,
+			z = vectors[0].x * vectors[1].y - vectors[0].y * vectors[1].x;
+
+		return new Vector(x, y, z);
+	}
+
 	static dot(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
 
 		return Array(vector1.dimension).fill(null).map(
 			(_, dim) => vector1[Vector.getDimensionLabel(dim)] * vector2[Vector.getDimensionLabel(dim)]
 		).reduce((acc, val) => acc + val, 0);
+	}
+
+	static angle(vector1, vector2) {
+		if (!Vector.sameDimension(vector1, vector2)) return;
+
+		let len1 = Vector.length(vector1),
+			len2 = Vector.length(vector2);
+
+		if (len1 === 0 || len2 === 0) return;
+
+		return Math.acos(Vector.dot(vector1, vector2) / (len1 * len2));
 	}
 
 	static length(vector) {
@@ -315,6 +359,49 @@ class Vector {
 	static limit(vector, scalar) {
 		let length = Vector.length(vector);
 		return length <= scalar ? vector : Vector.mult(Vector.normalise(vector), scalar);
+	}
+
+	static reduce(vector) {
+		// check if any dimension is not an integer
+		if (Object.keys(vector).some(dim => vector[dim] - parseInt(vector[dim] !== 0))) return vector;
+
+		let dim = vector.dimension,
+			gcds = [];
+
+		// collect the greatest common divisors for all pairs of dimensions
+		for (let i = 0; i < vector.dimension - 2; i++) {
+			for (let j = i + 1; j < vector.dimension; j++) {
+				let dimI = Math.abs(vector[Vector.getDimensionLabel(i)]),
+					dimJ = Math.abs(vector[Vector.getDimensionLabel(j)]);
+
+				if (dimI < dimJ) {
+					let temp = dimI;
+					dimI = dimJ;
+					dimJ = temp;
+				}
+
+				let remainder = dimI % dimJ;
+				while (remainder !== 0 && dimJ > 1) {
+					dimI = dimJ;
+					dimJ = remainder;
+					remainder = dimI % dimJ;
+				}
+
+				if (dimJ > 1 && gcds.indexOf(dimJ) === -1)
+					gcds.push(dimJ);
+			}
+		}
+
+		if (gcds.length === 0) return vector;
+		gcds.sort().reverse();
+
+		// find largest GCD which is a divisor of all dimensions
+		for (let i = 0; i < gcds.length; i++) {
+			if (Object.keys(vector).filter(dim => vector[dim] % gcds[i] !== 0).length === 0)
+				return Vector.div(vector, gcds[i]);
+		};
+
+		return vector;
 	}
 
 	static min(vector1, vector2) {
@@ -355,10 +442,33 @@ class Vector {
 		return new Vector(...values);
 	}
 
-	static clone(vector) {
-		return JSON.parse(JSON.stringify(vector));
+
+	static distance(vector1, vector2) {
+		if (!Vector.sameDimension(vector1, vector2)) return;
+		return Math.sqrt(Vector.distanceSquared(vector1, vector2));
 	}
 
+	static distanceSquared(vector1, vector2) {
+		if (!Vector.sameDimension(vector1, vector2)) return;
+		return Object.keys(vector1).map(dim => Math.pow(vector1[dim] - vector2[dim], 2)).reduce((acc, val) => acc + val, 0);
+	}
+
+	static distanceManhattan(vector1, vector2) {
+		if (!Vector.sameDimension(vector1, vector2)) return;
+		return Object.keys(vector1).map(dim => Math.abs(vector1[dim] - vector2[dim])).reduce((acc, val) => acc + val, 0);
+	}
+
+	static distanceChebyshev(vector1, vector2) {
+		if (!Vector.sameDimension(vector1, vector2)) return;
+		let distance = 0;
+		Object.keys(vector1).forEach(dim => distance = Math.max(distance, Math.abs(vector1[dim] - vector2[dim])));
+		return distance;
+	}
+
+	static distanceMinkowski(vector1, vector2, p = 2) {
+		if (p == 0 || !Vector.sameDimension(vector1, vector2)) return;
+		return Math.pow(Object.keys(vector1).map(dim => Math.pow(vector1[dim] - vector2[dim], p)).reduce((acc, val) => acc + val, 0), 1 / p);
+	}
 
 
 	/******************************************
@@ -370,11 +480,13 @@ class Vector {
 		return Object.keys(this).length;
 	}
 
+	clone() {
+		return Vector.clone(this);
+	}
+
 	update(vector) {
 		for (let dim in this) {
-			if (vector.hasOwnProperty(dim)) {
-				this[dim] = vector[dim];
-			}
+			if (vector.hasOwnProperty(dim)) this[dim] = vector[dim];
 		}
 
 		return this;
@@ -412,8 +524,16 @@ class Vector {
 		return this.update(Vector.negative(this));
 	}
 
+	cross(vector) {
+		return Vector.cross(this, vector);
+	}
+
 	dot(vector) {
 		return Vector.dot(this, vector);
+	}
+
+	angle(vector) {
+		return Vector.angle(this, vector);
 	}
 
 	length() {
@@ -432,6 +552,10 @@ class Vector {
 		return this.update(Vector.limit(this, scalar));
 	}
 
+	reduce() {
+		return this.update(Vector.reduce(this));
+	}
+
 	min(vector) {
 		return this.update(Vector.min(this, vector));
 	}
@@ -448,8 +572,24 @@ class Vector {
 		return this.update(Vector.map(this, minIn, maxIn, minOut, maxOut));
 	}
 
-	clone() {
-		return Vector.clone(this);
+	distance(vector) {
+		return Vector.distance(this, vector);
+	}
+
+	distanceSquared(vector) {
+		return Vector.distanceSquared(this, vector);
+	}
+
+	distanceManhattan(vector) {
+		return Vector.distanceManhattan(this, vector);
+	}
+
+	distanceChebyshev(vector) {
+		return Vector.distanceChebyshev(this, vector);
+	}
+
+	distanceMinkowski(vector, p = 2) {
+		return Vector.distanceMinkowski(this, vector, p);
 	}
 
 };
