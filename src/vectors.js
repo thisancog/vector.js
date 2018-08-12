@@ -2,8 +2,6 @@
 
 	ToDo:
 
-	cartesian to polar
-	polar to cartesian
 	construct from polar
 	direction in cartesian grid
 	angle in plane N
