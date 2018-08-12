@@ -1,17 +1,17 @@
-var isNumeric = function(n) {
-	return (typeof n !== 'undefined') ? !Array.isArray(n) && !isNaN(parseFloat(n)) && isFinite(n) : undefined;
+var isNumeric = function(...numbers) {
+	return numbers.filter(n => typeof n === 'undefined' || Array.isArray(n) || isNaN(parseFloat(n)) || !isFinite(n)).length === 0;
 }
 
-var sumExact = function(data) {
-	if (data.length == 0) return;
-	if (data.length == 1) return data[0];
+var sumExact = function(...summands) {
+	if (summands.length == 0) return;
+	if (summands.length == 1) return summands[0];
 
-	let sum = data[0],
+	let sum = summands[0],
 		compensation = 0.0,
 		decimals = 0;
 
-	for (let i = 1; i < data.length; i++) {
-		let summand = data[i],
+	for (let i = 1; i < summands.length; i++) {
+		let summand = summands[i],
 			t = sum + summand;
 
 		if ((summand + "").indexOf('.') > -1) {
@@ -27,11 +27,6 @@ var sumExact = function(data) {
 	return Math.round((sum + compensation) * power) / power;
 }
 /*
-	matrix multiplication
-	matrix division
-	rotation matrix X
-	rotation matrix Y
-	rotation matrix Z
 	project onto X/Y/Z
 
 	Eigenwert
@@ -81,29 +76,38 @@ class Matrix {
 		return this;
 	}
 
+	update(matrix) {
+		if (typeof matrix === undefined) return this;
 
-
-	/******************************************
-		Static methods invoked on the class
-		e.g. Matrix.add(matrix1, matrix2)
-	 ******************************************/
-
-	static isMatrix(...matrices) {
-		return matrices.filter(matrix => !(matrix instanceof Matrix)).length === 0;
+		this.values = matrix.values;
+		this.rows = matrix.rows;
+		this.cols = matrix.cols;
+		return this;
 	}
 
-	static clone(matrix) {
-		return JSON.parse(JSON.stringify(matrix));
-	}
+
+
+	/******************************************************************************
+		Static methods invoked on the class e.g. Matrix.add(matrix1, matrix2)
+		and public methods invoked on the instance, updating it
+	 ******************************************************************************/
+
+	static isMatrix(...matrices) { return matrices.filter(matrix => !(matrix instanceof Matrix)).length === 0; }
+
+	static clone(matrix) { return JSON.parse(JSON.stringify(matrix)); }
+	clone() { return Matrix.clone(this); }
 
 	static sameShape(matrix1, ...matrices) {
 		if (!Matrix.isMatrix(matrix1, ...matrices)) return;
 		return matrices.filter(matrix => matrix.rows !== matrix1.rows || matrix.cols !== matrix1.cols).length == 0;
 	}
 
-	static log(matrix) {
-		console.table(matrix.values);
-	}
+	sameShape(...matrices) { return Matrix.sameShape(...matrices); }
+	
+	static log(matrix) { console.table(matrix.values); }
+	log() { Matrix.log(this); }
+
+
 
 	static add(...matrices) {
 		if (!Matrix.sameShape(...matrices)) return;
@@ -115,15 +119,23 @@ class Matrix {
 		));
 	}
 
+	add(...matrices) { return this.update(Matrix.add(this, ...matrices)); }
+	
+
+
 	static addExact(...matrices) {
 		if (!Matrix.sameShape(...matrices)) return;
 
 		return new Matrix(Array(matrices[0].rows).fill(null).map((_, row) =>
 			Array(matrices[0].cols).fill(null).map((__, col) =>
-				sumExact(matrices.map(matrix => matrix.values[row][col]))
+				sumExact(...matrices.map(matrix => matrix.values[row][col]))
 			)
 		));
 	}
+
+	addExact(...matrices) { return this.update(Matrix.addExact(this, ...matrices)); }
+	
+
 
 	static subtract(matrix1, ...matrices) {
 		if (!Matrix.sameShape(matrix1, ...matrices)) return;
@@ -135,15 +147,23 @@ class Matrix {
 		));
 	}
 
+	subtract(...matrices) { return this.update(Matrix.subtract(this, ...matrices)); }
+	
+
+
 	static subtractExact(matrix1, ...matrices) {
 		if (!Matrix.sameShape(matrix1, ...matrices)) return;
 
 		return new Matrix(Array(matrix1.rows).fill(null).map((_, row) =>
 			Array(matrix1.cols).fill(null).map((__, col) =>
-				sumExact(matrices.map((matrix, i) => i == 0 ? matrix.values[row][col] : - matrix.values[row][col]))
+				sumExact(...matrices.map((matrix, i) => i == 0 ? matrix.values[row][col] : - matrix.values[row][col]))
 			)
 		));
 	}
+
+	subtractExact(...matrices) { return this.update(Matrix.subtractExact(this, ...matrices)); }
+	
+
 
 	static mult(matrix, scalar) {
 		if (!Matrix.isMatrix(matrix) || !isNumeric(scalar)) return;
@@ -152,6 +172,10 @@ class Matrix {
 		));
 	}
 
+	mult(scalar) { return this.update(Matrix.mult(this, scalar)); }
+	
+
+
 	static div(matrix, scalar) {
 		if (!Matrix.isMatrix(matrix) || !isNumeric(scalar) || scalar == 0) return;
 		
@@ -159,6 +183,19 @@ class Matrix {
 			Array(matrix.cols).fill(null).map((__, col) => matrix.values[row][col] / scalar)
 		));
 	}
+
+	div(scalar) { return this.update(Matrix.div(this, scalar)); }
+	
+
+
+	static negative(matrix) {
+		if (!Matrix.isMatrix(matrix)) return;
+		return Matrix.mult(matrix, -1);
+	}
+
+	negative() { return this.update(Matrix.negative(this)); }
+	
+
 
 	static matMult(matrix1, matrix2) {
 		if (!Matrix.isMatrix(matrix1, matrix2) || matrix1.cols !== matrix2.rows) return;
@@ -171,6 +208,10 @@ class Matrix {
 			)
 		))
 	}
+
+	matMult(matrix) { return this.update(Matrix.matMult(this, matrix)); }
+	
+
 
 	static submatrix(matrix, rows, cols) {
 		if (!Matrix.isMatrix(matrix)) return;
@@ -186,6 +227,10 @@ class Matrix {
 		newMatrix.rows = newMatrix.cols = newMatrix.values.length;
 		return newMatrix;
 	}
+
+	submatrix(rows, cols) { return Matrix.submatrix(this, rows, cols); }
+	
+
 
 	static determinant(matrix) {
 		if (!Matrix.isMatrix(matrix) || matrix.rows !== matrix.cols) return;
@@ -204,68 +249,7 @@ class Matrix {
 		return sum;
 	}
 
-	
-
-
-
-	/******************************************
-		Public methods invoked on the instance
-		which update the instance's data
-	 ******************************************/
-
-	update(matrix) {
-		if (typeof matrix === undefined) return this;
-
-		this.values = matrix.values;
-		this.rows = matrix.rows;
-		this.cols = matrix.cols;
-		return this;
-	}
-
-	clone() {
-		return Matrix.clone(this);
-	}
-
-	log() {
-		Matrix.log(this);
-	}
-
-	add(...matrices) {
-		return this.update(Matrix.add(this, ...matrices));
-	}
-
-	addExact(...matrices) {
-		return this.update(Matrix.addExact(this, ...matrices));
-	}
-
-	subtract(...matrices) {
-		return this.update(Matrix.subtract(this, ...matrices));
-	}
-
-	subtractExact(...matrices) {
-		return this.update(Matrix.subtractExact(this, ...matrices));
-	}
-
-	mult(scalar) {
-		return this.update(Matrix.mult(this, scalar));
-	}
-
-	div(scalar) {
-		return this.update(Matrix.div(this, scalar));
-	}
-
-	matMult(matrix) {
-		return this.update(Matrix.matMult(this, matrix));
-	}
-
-	submatrix(rows, cols) {
-		return Matrix.submatrix(this, rows, cols);
-	}
-
-	determinant() {
-		return Matrix.determinant(this);
-	}
-
+	determinant() { return Matrix.determinant(this); }
 
 
 }
@@ -282,8 +266,8 @@ class Matrix {
 	construct from polar
 	direction in cartesian grid
 	angle in plane N
-	rotate around axis n
 
+	rotate for n > 3
 	cross product n > 3
 
 	projection a on vector b
@@ -353,26 +337,44 @@ class Vector {
 		return n <= 23 ? alphabet[n] : alphabet[Math.floor(n / 23) - 1] + alphabet[n % 23];
 	}
 
+	get dimension() {
+		return Object.keys(this).length;
+	}
+
+	update(vector) {
+		if (typeof vector === undefined) return this;
+
+		for (let dim in this) {
+			if (vector.hasOwnProperty(dim)) this[dim] = vector[dim];
+		}
+
+		return this;
+	}
+
 	
 
 
-	/******************************************
-		Static methods invoked on the class
-		e.g. Vector.add(vector1, vector2)
-	 ******************************************/
+	/******************************************************************************
+		Static methods invoked on the class e.g. Vector.add(vector1, vector2)
+		and public methods invoked on the instance, updating it
+	 ******************************************************************************/
 
-	static isVector(...vectors) {
-		return vectors.filter(vector => !(vector instanceof Vector)).length === 0;
-	}
+	static isVector(...vectors) { return vectors.filter(vector => !(vector instanceof Vector)).length === 0; }
 
-	static clone(vector) {
-		return JSON.parse(JSON.stringify(vector));
-	}
+	static clone(vector) { return JSON.parse(JSON.stringify(vector)); }
+	clone() { return Vector.clone(this); }
 
 	static sameDimension(vector1, ...vectors) {
 		if (!Vector.isVector(vector1, ...vectors)) return;
 		return vectors.filter(vector => vector.dimension !== vector1.dimension).length == 0;
 	}
+
+	sameDimension(...vectors) { return Vectors.sameDimension(this, ...vectors); }
+
+
+
+
+	/***** Linear algebra *****/
 
 	static add(...vectors) {
 		if (!Vector.sameDimension(...vectors)) return;
@@ -384,15 +386,23 @@ class Vector {
 		return new Vector(...values);
 	}
 
+	add(...vectors) { return this.update(Vector.add(this, ...vectors)); }
+
+
+
 	static addExact(...vectors) {
 		if (!Vector.sameDimension(...vectors)) return;
 
 		let values = Array(vectors[0].dimension).fill(null).map(
-			(_, dim) => sumExact(vectors.map(vector => vector[Vector.getDimensionLabel(dim)]))
+			(_, dim) => sumExact(...vectors.map(vector => vector[Vector.getDimensionLabel(dim)]))
 		);
 
 		return new Vector(...values);
 	}
+
+	addExact(...vectors) { return this.update(Vector.addExact(this, ...vectors)); }
+
+
 
 	static subtract(vector1, ...vectors) {
 		if (!Vector.sameDimension(vector1, ...vectors)) return;
@@ -404,15 +414,23 @@ class Vector {
 		return new Vector(...values);
 	}
 
+	subtract(...vectors) { return this.update(Vector.subtract(this, ...vectors)); }
+
+
+
 	static subtractExact(...vectors) {
 		if (!Vector.sameDimension(...vectors)) return;
 
 		let values = Array(vectors[0].dimension).fill(null).map(
-			(_, dim) => sumExact(vectors.map((vector, i) => i == 0 ? vector[Vector.getDimensionLabel(dim)] : - vector[Vector.getDimensionLabel(dim)]))
+			(_, dim) => sumExact(...vectors.map((vector, i) => i == 0 ? vector[Vector.getDimensionLabel(dim)] : - vector[Vector.getDimensionLabel(dim)]))
 		);
 
 		return new Vector(...values);
 	}
+
+	subtractExact(...vectors) { return this.update(Vector.subtractExact(this, ...vectors)); }
+
+
 
 	static mult(vector, scalar) {
 		if (!Vector.isVector(vector) || !isNumeric(scalar)) return;
@@ -422,6 +440,10 @@ class Vector {
 
 		return new Vector(...values);
 	}
+
+	mult(scalar) { return this.update(Vector.mult(this, scalar)); }
+
+
 
 	static div(vector, scalar) {
 		if (!Vector.isVector(vector) || !isNumeric(scalar) || scalar == 0) return
@@ -433,10 +455,17 @@ class Vector {
 		return new Vector(...values);
 	}
 
+	div(scalar) { return this.update(Vector.div(this, scalar)); }
+
+
+
 	static negative(vector) {
-		if (!Vector.isVector(vector)) return;
-		return Vector.mult(vector, -1);
+		return (Vector.isVector(vector)) ? Vector.mult(vector, -1) : undefined;
 	}
+
+	negative() { return this.update(Vector.negative(this)); }
+	
+
 
 	static cross(...vectors) {
 		if (!Vector.isVector(...vectors)) return;
@@ -465,6 +494,10 @@ class Vector {
 		return new Vector(x, y, z);
 	}
 
+	cross(vector) { return Vector.cross(this, vector); }
+	
+
+
 	static dot(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
 
@@ -473,17 +506,29 @@ class Vector {
 		).reduce((acc, val) => acc + val, 0);
 	}
 
+	dot(vector) { return Vector.dot(this, vector); }
+
+
+
 	static vectorTripleProduct(vector1, vector2, vector3) {
 		if (!Vector.isVector(vector1, vector2, vector3)) return;
 		let prod = Vector.cross(vector2, vector3);
 		return (prod) ? Vector.cross(vector1, prod) : undefined;
 	}
 
+	vectorTripleProduct(vector1, vector2) { return Vector.vectorTripleProduct(this, vector1, vector2); }
+
+
+
 	static scalarTripleProduct(vector1, vector2, vector3) {
 		if (!Vector.isVector(vector1, vector2, vector3)) return;
 		let prod = Vector.cross(vector1, vector2);
 		return (prod) ? Vector.dot(prod, vector3) : undefined;
 	}
+
+	scalarTripleProduct(vector1, vector2) { return Vector.scalarTripleProduct(this, vector1, vector2); }
+	
+
 
 	static dyadic(vector1, vector2) {
 		if (!Vector.isVector(vector1, vector2)) return;
@@ -496,6 +541,10 @@ class Vector {
 		return new Matrix(data);
 	}
 
+	dyadic(vector) { return Vector.dyadic(this, vector); }
+	
+
+
 	static matMult(vector, matrix) {
 		if (!Vector.isVector(vector) || !Matrix.isMatrix(matrix) || vector.dimension !== matrix.rows) return;
 
@@ -504,6 +553,13 @@ class Vector {
 
 		return new Vector(...newMatrix.values[0]);
 	}
+
+	matMult(matrix) { return this.update(Vector.matMult(this, matrix)); }
+
+
+
+
+	/***** Angles *****/
 
 	static angle(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
@@ -516,6 +572,10 @@ class Vector {
 		return Math.acos(Vector.dot(vector1, vector2) / (len1 * len2));
 	}
 
+	angle(vector) { return Vector.angle(this, vector); }
+	
+
+
 	static angleToAxis(vector, axis) {
 		if (!Vector.isVector(vector)) return;
 		let coords = Array(vector.dimension).fill(0);
@@ -523,38 +583,154 @@ class Vector {
 		return Vector.angle(vector, new Vector(...coords));
 	}
 
-	static angleX(vector) {
-		return Vector.angleToAxis(vector, 0);
+	angleToAxis(axis) { return Vector.angleToAxis(vector, axis); }
+	
+
+
+	static angleX(vector) { return Vector.angleToAxis(vector, 0); }
+	angleX() { return Vector.angleX(this); }
+
+
+
+	static angleY(vector) { return Vector.angleToAxis(vector, 1); }
+	angleY() { return Vector.angleY(this); }
+
+
+
+	static angleZ(vector) { return Vector.angleToAxis(vector, 2); }
+	angleZ() { return Vector.angleZs(this); }
+	
+
+
+
+	/***** 2D/3D rotation wrapper *****/
+
+	static rotate(vector, phi, axis = false) {
+		if (!Vector.isVector(vector) || !isNumeric(phi)) return;
+		if (vector.dimension === 3) return Vector.rotateAxis(vector, phi, axis);
+		if (vector.dimension === 2) return Vector.rotatePoint(vector, phi, axis || new Vector(0, 0));
+		return;
 	}
 
-	static angleY(vector) {
-		return Vector.angleToAxis(vector, 1);
+	rotate(phi, axis = false) { return this.update(Vector.roate(this, phi, axis)); }
+
+
+
+
+	/***** 2D rotations *****/
+
+	static rotatePoint(vector, phi, point = false) {
+		if (!Vector.isVector(vector) || !isNumeric(phi)) return;
+		point = point || new Vector(0, 0);
+
+		let rotated = vector.clone(),
+			matrix = new Matrix([[Math.cos(phi), - Math.sin(phi)], [Math.sin(phi), Math.cos(phi)]]);
+
+		return rotated.subtract(point).matMult(matrix).add(point);
 	}
 
-	static angleZ(vector) {
-		return Vector.angleToAxis(vector, 2);
+	rotatePoint(phi, point = false) { return this.update(Vector.rotatePoint(this, phi, point)); }
+	
+
+
+
+	/***** 3D rotations *****/
+
+	static rotateX(vector, phi) {
+		if (!Vector.isVector(vector) || !isNumeric(phi)) return;
+		let matrix = new Matrix([[1, 0, 0], [0, Math.cos(phi), -Math.sin(phi)], [0, Math.sin(phi), Math.cos(phi)]]);
+
+		return Vector.matMult(vector, matrix);
 	}
+
+	rotateX(phi) { return this.update(Vector.rotateX(this, phi)); }
+
+
+
+	static rotateY(vector, phi) {
+		if (!Vector.isVector(vector) || !isNumeric(phi)) return;
+		let matrix = new Matrix([[Math.cos(phi), 0, Math.sin(phi)], [0, 1, 0], [-Math.sin(phi), 0, Math.cos(phi)]]);
+
+		return Vector.matMult(vector, matrix);		
+	}
+
+	rotateY(phi) { return this.update(Vector.rotateY(this, phi)); }
+	
+
+
+	static rotateZ(vector, phi) {
+		if (!Vector.isVector(vector) || !isNumeric(phi)) return;
+		let matrix = new Matrix([[Math.cos(phi), -Math.sin(phi), 0], [Math.sin(phi), Math.cos(phi), 0], [0, 0, 1]]);
+
+		return Vector.matMult(vector, matrix);		
+	}
+
+	rotateZ(phi) { return this.update(Vector.rotateZ(this, phi)); }
+	
+
+
+	static rotateAxis(vector, phi, axis) {
+		if (!Vector.isVector(vector) || !isNumeric(phi)) return;
+		if (axis === 'x') return Vector.rotateX(vector, phi);
+		if (axis === 'y') return Vector.rotateY(vector, phi);
+		if (axis === 'z') return Vector.rotateZ(vector, phi);
+		if (!Vector.isVector(axis) || vector.dimension !== 3) return;
+
+		let cos = Math.cos(phi),
+			sin = Math.sin(phi),
+			cos1 = 1 - cos,
+			matrix = new Matrix([
+				[axis.x * axis.x * cos1 +          cos, axis.y * axis.x * cos1 - axis.z * sin, axis.x * axis.z * cos1 + axis.y * sin],
+				[axis.x * axis.y * cos1 + axis.z * sin, axis.y * axis.y * cos1 +          cos, axis.y * axis.z * cos1 - axis.x * sin],
+				[axis.x * axis.z * cos1 - axis.y * sin, axis.y * axis.z * cos1 + axis.x * sin, axis.z * axis.z * cos1 +          cos]
+			]);
+
+		return Vector.matMult(vector, matrix);
+	}
+
+	rotateAxis(phi, axis) { return this.update(Vector.rotateAxis(this, phi, axis)); }
+
+
+
+
+	/***** Lengths/magnitudes *****/
 
 	static length(vector) {
 		if (!Vector.isVector(vector)) return;
 		return Math.sqrt(Vector.dot(vector, vector));
 	}
 
+	length() { return Vector.length(this); }
+	
+
+
 	static normalise(vector) {
 		if (!Vector.isVector(vector)) return;
 		return Vector.div(vector, Vector.length(vector));
 	}
+
+	normalise() { return this.update(Vector.normalise(this)); }
+	
+
 
 	static setLength(vector, scalar) {
 		if (!Vector.isVector(vector) || !isNumeric(scalar)) return;
 		return Vector.mult(Vector.normalise(vector), scalar);
 	}
 
+	setLength(scalar) { return this.update(Vector.setLength(this, scalar)); }
+	
+
+
 	static limit(vector, scalar) {
 		if (!Vector.isVector(vector) || !isNumeric(scalar)) return;
 		let length = Vector.length(vector);
 		return length <= scalar ? vector : Vector.mult(Vector.normalise(vector), scalar);
 	}
+
+	limit(scalar) { return this.update(Vector.limit(this, scalar)); }
+	
+
 
 	static reduce(vector) {
 		if (!Vector.isVector(vector)) return;
@@ -601,6 +777,13 @@ class Vector {
 		return vector;
 	}
 
+	reduce() { return this.update(Vector.reduce(this)); }
+
+
+
+
+	/***** Conditional transforms *****/
+
 	static min(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
 
@@ -609,6 +792,10 @@ class Vector {
 		);
 		return new Vector(...values);
 	}
+
+	min(vector) { return this.update(Vector.min(this, vector)); }
+	
+
 
 	static max(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
@@ -619,12 +806,20 @@ class Vector {
 		return new Vector(...values);
 	}
 
+	min(vector) { return this.update(Vector.max(this, vector)); }
+	
+
+
 	static lerp(min, max, fraction) {
 		if (!Vector.sameDimension(min, max)) return;
 
 		let newMax = Vector.clone(max);
 		return newMax.subtract(min).multiply(fraction).add(min);
 	}
+
+	lerp(min, max, fraction) { return this.update(Vector.lerp(min, max, fraction)); }
+	
+
 
 	static map(vector, minIn, maxIn, minOut, maxOut) {
 		if (!Vector.sameDimension(vector, minIn, maxIn, minOut, maxOut)) return;
@@ -639,21 +834,39 @@ class Vector {
 		return new Vector(...values);
 	}
 
+	map(minIn, maxIn, minOut, maxOut) { return this.update(Vector.map(this, minIn, maxIn, minOut, maxOut)); }
+
+
+
+
+	/***** Distances *****/
 
 	static distance(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
 		return Math.sqrt(Vector.distanceSquared(vector1, vector2));
 	}
 
+	distance(vector) { return Vector.distance(this, vector); }
+	
+
+
 	static distanceSquared(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
 		return Object.keys(vector1).map(dim => Math.pow(vector1[dim] - vector2[dim], 2)).reduce((acc, val) => acc + val, 0);
 	}
 
+	distanceSquared(vector) { return Vector.distanceSquared(this, vector); }
+	
+
+
 	static distanceManhattan(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
 		return Object.keys(vector1).map(dim => Math.abs(vector1[dim] - vector2[dim])).reduce((acc, val) => acc + val, 0);
 	}
+
+	distanceManhattan(vector) { return Vector.distanceManhattan(this, vector); }
+	
+
 
 	static distanceChebyshev(vector1, vector2) {
 		if (!Vector.sameDimension(vector1, vector2)) return;
@@ -662,162 +875,87 @@ class Vector {
 		return distance;
 	}
 
+	distanceChebyshev(vector) { return Vector.distanceChebyshev(this, vector); }
+	
+
+
 	static distanceMinkowski(vector1, vector2, p = 2) {
 		if (p == 0 || !Vector.sameDimension(vector1, vector2)) return;
 		return Math.pow(Object.keys(vector1).map(dim => Math.pow(vector1[dim] - vector2[dim], p)).reduce((acc, val) => acc + val, 0), 1 / p);
 	}
 
+	distanceMinkowski(vector, p = 2) { return Vector.distanceMinkowski(this, vector, p); }
 
-	/******************************************
-		Public methods invoked on the instance
-		which update the instance's coordinates
-	 ******************************************/
 
-	get dimension() {
-		return Object.keys(this).length;
+
+	/***** Cartesian/polar transforms *****/
+
+	static toPolar(vector) {
+		if (!Vector.isVector(vector)) return;
+
+		let dimension = vector.dimensions;
+		if (dimension == 2)
+			return { radius: vector.length(), alpha: Math.atan2(vector.y, vector.x) };
+
+		if (dimension == 3)
+			return { radius: vector.length(), alpha: Math.acos(vector.z / vector.length()), beta: Math.atan(vector.y / vector.x) };
+
+		let r = Vector.length(vector),
+			angles = Array(dimension - 1).fill(null).map((_, dim) => {
+				let coord = vector[Vector.getDimensionLabel(dim)],
+					firstZero = null,
+					denom = 0;
+
+				for (let i = dimension - 1; i >= dim; i--) {
+					let tempCoord = vector[Vector.getDimensionLabel(i)];
+					firstZero = tempCoord === 0 ? i : firstZero;
+					denom += Math.pow(tempCoord, 2);
+				}
+
+				if (firstZero !== null)
+					return vector[Vector.getDimensionLabel(firstZero - 1)] > 0 ? 0 : Math.PI;
+
+				return (coord < 0 && dim === dimension - 2 ? -1 : 1) * Math.acos(coord / Math.sqrt(denom));
+			}),
+			result = { radius: r };
+			
+		angles.forEach((angle, i) => result[Vector.getAngleLabel(i)] = angle);
+		return result;
 	}
 
-	clone() {
-		return Vector.clone(this);
-	}
+	toPolar() { return Vector.toPolar(this); }
 
-	update(vector) {
-		if (typeof vector === undefined) return this;
 
-		for (let dim in this) {
-			if (vector.hasOwnProperty(dim)) this[dim] = vector[dim];
+
+	static fromPolar(radius, ...angles) {
+		if (angles.length === 0) return;
+		if (!isNumeric(radius, ...angles)) return;
+
+		let dimension = angles.length + 1;
+
+		if (dimension === 2) {
+			return new Vector(radius * Math.cos(angles[0]), radius * Math.sin(angles[0]));
+
+		} else if (dimension === 3) {
+			return new Vector(radius * Math.sin(angles[0]) * Math.cos(angles[1]),
+							  radius * Math.sin(angles[0]) * Math.sin(angles[1]),
+							  radius * Math.cos(angles[0]));
+
+		} else {
+			let coords = Array(dimension).fill(null).map((_, dim) => {
+				let temp = radius * Array(dim).fill(null).map((__, i) => Math.sin(angles[dim - i - 1])).reduce((acc, val) => acc * val, 1);
+
+				if (dim === dimension -1)	temp *= Math.sin(angles[dim]);
+				else if (dim > 0)			temp *= Math.cos(angles[dim]);
+
+				return temp;
+			});
+			
+			return new Vector(...cords);
 		}
-
-		return this;
 	}
 
-	add(...vectors) {
-		return this.update(Vector.add(this, ...vectors));
-	}
 
-	addExact(...vectors) {
-		return this.update(Vector.addExact(this, ...vectors));
-	}
-
-	subtract(...vectors) {
-		return this.update(Vector.subtract(this, ...vectors));
-	}
-
-	subtractExact(...vectors) {
-		return this.update(Vector.subtractExact(this, ...vectors));
-	}
-
-	mult(scalar) {
-		return this.update(Vector.mult(this, scalar));
-	}
-
-	div(scalar) {
-		return this.update(Vector.div(this, scalar));
-	}
-
-	negative() {
-		return this.update(Vector.negative(this));
-	}
-
-	cross(vector) {
-		return Vector.cross(this, vector);
-	}
-
-	dot(vector) {
-		return Vector.dot(this, vector);
-	}
-
-	vectorTripleProduct(vector1, vector2) {
-		return Vector.vectorTripleProduct(this, vector1, vector2);
-	}
-
-	scalarTripleProduct(vector1, vector2) {
-		return Vector.scalarTripleProduct(this, vector1, vector2);
-	}
-
-	dyadic(vector) {
-		return Vector.dyadic(this, vector);
-	}
-
-	matMult(matrix) {
-		return this.update(Vector.matMult(this, matrix));
-	}
-
-	angle(vector) {
-		return Vector.angle(this, vector);
-	}
-
-	angleToAxis(axis) {
-		return Vector.angleToAxis(vector, axis);
-	}
-
-	angleX() {
-		return Vector.angleX(this);
-	}
-
-	angleY() {
-		return Vector.angleY(this);
-	}
-
-	angleZ() {
-		return Vector.angleZs(this);
-	}
-
-	length() {
-		return Vector.length(this);
-	}
-
-	normalise() {
-		return this.update(Vector.normalise(this));
-	}
-
-	setLength(scalar) {
-		return this.update(Vector.setLength(this, scalar));
-	}
-
-	limit(scalar) {
-		return this.update(Vector.limit(this, scalar));
-	}
-
-	reduce() {
-		return this.update(Vector.reduce(this));
-	}
-
-	min(vector) {
-		return this.update(Vector.min(this, vector));
-	}
-
-	min(vector) {
-		return this.update(Vector.max(this, vector));
-	}
-
-	lerp(min, max, fraction) {
-		return this.update(Vector.lerp(min, max, fraction));
-	}
-
-	map(minIn, maxIn, minOut, maxOut) {
-		return this.update(Vector.map(this, minIn, maxIn, minOut, maxOut));
-	}
-
-	distance(vector) {
-		return Vector.distance(this, vector);
-	}
-
-	distanceSquared(vector) {
-		return Vector.distanceSquared(this, vector);
-	}
-
-	distanceManhattan(vector) {
-		return Vector.distanceManhattan(this, vector);
-	}
-
-	distanceChebyshev(vector) {
-		return Vector.distanceChebyshev(this, vector);
-	}
-
-	distanceMinkowski(vector, p = 2) {
-		return Vector.distanceMinkowski(this, vector, p);
-	}
 
 };
 

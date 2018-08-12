@@ -1,17 +1,17 @@
-var isNumeric = function(n) {
-	return (typeof n !== 'undefined') ? !Array.isArray(n) && !isNaN(parseFloat(n)) && isFinite(n) : undefined;
+var isNumeric = function(...numbers) {
+	return numbers.filter(n => typeof n === 'undefined' || Array.isArray(n) || isNaN(parseFloat(n)) || !isFinite(n)).length === 0;
 }
 
-var sumExact = function(data) {
-	if (data.length == 0) return;
-	if (data.length == 1) return data[0];
+var sumExact = function(...summands) {
+	if (summands.length == 0) return;
+	if (summands.length == 1) return summands[0];
 
-	let sum = data[0],
+	let sum = summands[0],
 		compensation = 0.0,
 		decimals = 0;
 
-	for (let i = 1; i < data.length; i++) {
-		let summand = data[i],
+	for (let i = 1; i < summands.length; i++) {
+		let summand = summands[i],
 			t = sum + summand;
 
 		if ((summand + "").indexOf('.') > -1) {

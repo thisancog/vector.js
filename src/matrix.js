@@ -1,9 +1,4 @@
 /*
-	matrix multiplication
-	matrix division
-	rotation matrix X
-	rotation matrix Y
-	rotation matrix Z
 	project onto X/Y/Z
 
 	Eigenwert
@@ -53,29 +48,38 @@ class Matrix {
 		return this;
 	}
 
+	update(matrix) {
+		if (typeof matrix === undefined) return this;
 
-
-	/******************************************
-		Static methods invoked on the class
-		e.g. Matrix.add(matrix1, matrix2)
-	 ******************************************/
-
-	static isMatrix(...matrices) {
-		return matrices.filter(matrix => !(matrix instanceof Matrix)).length === 0;
+		this.values = matrix.values;
+		this.rows = matrix.rows;
+		this.cols = matrix.cols;
+		return this;
 	}
 
-	static clone(matrix) {
-		return JSON.parse(JSON.stringify(matrix));
-	}
+
+
+	/******************************************************************************
+		Static methods invoked on the class e.g. Matrix.add(matrix1, matrix2)
+		and public methods invoked on the instance, updating it
+	 ******************************************************************************/
+
+	static isMatrix(...matrices) { return matrices.filter(matrix => !(matrix instanceof Matrix)).length === 0; }
+
+	static clone(matrix) { return JSON.parse(JSON.stringify(matrix)); }
+	clone() { return Matrix.clone(this); }
 
 	static sameShape(matrix1, ...matrices) {
 		if (!Matrix.isMatrix(matrix1, ...matrices)) return;
 		return matrices.filter(matrix => matrix.rows !== matrix1.rows || matrix.cols !== matrix1.cols).length == 0;
 	}
 
-	static log(matrix) {
-		console.table(matrix.values);
-	}
+	sameShape(...matrices) { return Matrix.sameShape(...matrices); }
+	
+	static log(matrix) { console.table(matrix.values); }
+	log() { Matrix.log(this); }
+
+
 
 	static add(...matrices) {
 		if (!Matrix.sameShape(...matrices)) return;
@@ -87,15 +91,23 @@ class Matrix {
 		));
 	}
 
+	add(...matrices) { return this.update(Matrix.add(this, ...matrices)); }
+	
+
+
 	static addExact(...matrices) {
 		if (!Matrix.sameShape(...matrices)) return;
 
 		return new Matrix(Array(matrices[0].rows).fill(null).map((_, row) =>
 			Array(matrices[0].cols).fill(null).map((__, col) =>
-				sumExact(matrices.map(matrix => matrix.values[row][col]))
+				sumExact(...matrices.map(matrix => matrix.values[row][col]))
 			)
 		));
 	}
+
+	addExact(...matrices) { return this.update(Matrix.addExact(this, ...matrices)); }
+	
+
 
 	static subtract(matrix1, ...matrices) {
 		if (!Matrix.sameShape(matrix1, ...matrices)) return;
@@ -107,15 +119,23 @@ class Matrix {
 		));
 	}
 
+	subtract(...matrices) { return this.update(Matrix.subtract(this, ...matrices)); }
+	
+
+
 	static subtractExact(matrix1, ...matrices) {
 		if (!Matrix.sameShape(matrix1, ...matrices)) return;
 
 		return new Matrix(Array(matrix1.rows).fill(null).map((_, row) =>
 			Array(matrix1.cols).fill(null).map((__, col) =>
-				sumExact(matrices.map((matrix, i) => i == 0 ? matrix.values[row][col] : - matrix.values[row][col]))
+				sumExact(...matrices.map((matrix, i) => i == 0 ? matrix.values[row][col] : - matrix.values[row][col]))
 			)
 		));
 	}
+
+	subtractExact(...matrices) { return this.update(Matrix.subtractExact(this, ...matrices)); }
+	
+
 
 	static mult(matrix, scalar) {
 		if (!Matrix.isMatrix(matrix) || !isNumeric(scalar)) return;
@@ -124,6 +144,10 @@ class Matrix {
 		));
 	}
 
+	mult(scalar) { return this.update(Matrix.mult(this, scalar)); }
+	
+
+
 	static div(matrix, scalar) {
 		if (!Matrix.isMatrix(matrix) || !isNumeric(scalar) || scalar == 0) return;
 		
@@ -131,6 +155,19 @@ class Matrix {
 			Array(matrix.cols).fill(null).map((__, col) => matrix.values[row][col] / scalar)
 		));
 	}
+
+	div(scalar) { return this.update(Matrix.div(this, scalar)); }
+	
+
+
+	static negative(matrix) {
+		if (!Matrix.isMatrix(matrix)) return;
+		return Matrix.mult(matrix, -1);
+	}
+
+	negative() { return this.update(Matrix.negative(this)); }
+	
+
 
 	static matMult(matrix1, matrix2) {
 		if (!Matrix.isMatrix(matrix1, matrix2) || matrix1.cols !== matrix2.rows) return;
@@ -143,6 +180,10 @@ class Matrix {
 			)
 		))
 	}
+
+	matMult(matrix) { return this.update(Matrix.matMult(this, matrix)); }
+	
+
 
 	static submatrix(matrix, rows, cols) {
 		if (!Matrix.isMatrix(matrix)) return;
@@ -158,6 +199,10 @@ class Matrix {
 		newMatrix.rows = newMatrix.cols = newMatrix.values.length;
 		return newMatrix;
 	}
+
+	submatrix(rows, cols) { return Matrix.submatrix(this, rows, cols); }
+	
+
 
 	static determinant(matrix) {
 		if (!Matrix.isMatrix(matrix) || matrix.rows !== matrix.cols) return;
@@ -176,68 +221,7 @@ class Matrix {
 		return sum;
 	}
 
-	
-
-
-
-	/******************************************
-		Public methods invoked on the instance
-		which update the instance's data
-	 ******************************************/
-
-	update(matrix) {
-		if (typeof matrix === undefined) return this;
-
-		this.values = matrix.values;
-		this.rows = matrix.rows;
-		this.cols = matrix.cols;
-		return this;
-	}
-
-	clone() {
-		return Matrix.clone(this);
-	}
-
-	log() {
-		Matrix.log(this);
-	}
-
-	add(...matrices) {
-		return this.update(Matrix.add(this, ...matrices));
-	}
-
-	addExact(...matrices) {
-		return this.update(Matrix.addExact(this, ...matrices));
-	}
-
-	subtract(...matrices) {
-		return this.update(Matrix.subtract(this, ...matrices));
-	}
-
-	subtractExact(...matrices) {
-		return this.update(Matrix.subtractExact(this, ...matrices));
-	}
-
-	mult(scalar) {
-		return this.update(Matrix.mult(this, scalar));
-	}
-
-	div(scalar) {
-		return this.update(Matrix.div(this, scalar));
-	}
-
-	matMult(matrix) {
-		return this.update(Matrix.matMult(this, matrix));
-	}
-
-	submatrix(rows, cols) {
-		return Matrix.submatrix(this, rows, cols);
-	}
-
-	determinant() {
-		return Matrix.determinant(this);
-	}
-
+	determinant() { return Matrix.determinant(this); }
 
 
 }
