@@ -14,6 +14,12 @@
 	angleX()
 	angleY()
 	angleZ()
+	rotate()
+	rotatePoint()
+	rotateAxis()
+	rotateX()
+	rotateY()
+	rotateZ()
 	reduce()
 	min()
 	max()
@@ -27,6 +33,8 @@
 	scalarTripleProduct()
 	vectorTripleProduct()
 	matMult()
+	toPolar()
+	fromPolar()
 	.dimension
 	.update()
 

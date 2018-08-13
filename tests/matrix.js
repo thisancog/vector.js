@@ -1,6 +1,7 @@
 /*
 
 	fill()
+	update()
 	submatrix()
 	determinant()
 	clone()
@@ -11,6 +12,7 @@
 	subtractExact()
 	mult()
 	div()
+	negative()
 	matMult()
 
 */
